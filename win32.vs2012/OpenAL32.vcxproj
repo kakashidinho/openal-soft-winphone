@@ -356,11 +356,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="..\Alc\backends\winmm.c" />
     <ClCompile Include="..\Alc\backends\wave.c" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="E:/cocos2d/cocos2d-x-3.0/projects/HowToBeAGod/third_party/OpenAL_soft/win32/ZERO_CHECK.vcxproj">
-      <Project>1DDA65AB-0886-4DE1-8007-04DAADC822C7</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
