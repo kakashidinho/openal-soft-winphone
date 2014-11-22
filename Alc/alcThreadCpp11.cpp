@@ -1,7 +1,7 @@
 /**
  * OpenAL cross platform audio library
- * Copyright (C) 1999-2007 by authors.
  * Copyright (C) 2014 by Le Hoang Quyen.
+ * Copyright (C) 1999-2007 by authors.
  * This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
