@@ -27,6 +27,7 @@
 
 #include <list>
 #include <new>
+#include <stdexcept>
 
 #include <windows.h>
 #include <winapifamily.h>
@@ -172,6 +173,10 @@ typedef struct {
 
 	volatile int killNow;
 	ALvoid *thread;
+	//win store
+#if WINAPI_FAMILY == WINAPI_FAMILY_APP
+	Windows::UI::Core::CoreDispatcher ^ uiDispatcher;
+#endif
 } WASAPIDevApiData;
 
 //win store
@@ -227,6 +232,7 @@ public:
 	IAudioClient **m_ppClient;
 	HRESULT m_result;
 };
+
 #endif//#if WINAPI_FAMILY == WINAPI_FAMILY_APP
 
 static const ALCchar mmDevice[] = "WASAPI Default";
@@ -607,7 +613,7 @@ static HRESULT DoReset(ALCdevice *device)
     return hr;
 }
 
-static HRESULT ActivateDefaultAudioEndpoint(IAudioClient** ppInterface)
+static HRESULT ActivateDefaultAudioEndpoint(IAudioClient** ppInterface, WASAPIDevApiData* apiData)
 {
 	HRESULT hr = S_OK;
 #if WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP//win phone
@@ -624,15 +630,8 @@ static HRESULT ActivateDefaultAudioEndpoint(IAudioClient** ppInterface)
 		Windows::Media::Devices::AudioDeviceRole::Default);
 
 	//activate device interface on UI Thread
-#if 1
-	auto mainView = Windows::ApplicationModel::Core::CoreApplication::MainView;
-	auto coreWindow = mainView->CoreWindow;
-#else
-	auto coreWindow = Windows::UI::Core::CoreWindow::GetForCurrentThread();
-#endif
-	auto dispatcher = coreWindow->Dispatcher;
-	dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,
-		ref new Windows::UI::Core::DispatchedHandler([&, deviceIdString, asyncCompletedHandler]()
+	auto dispatcher = apiData->uiDispatcher;
+	auto activateTask = [&, deviceIdString, asyncCompletedHandler]()
 	{
 
 		IActivateAudioInterfaceAsyncOperation *asyncOp;
@@ -641,7 +640,13 @@ static HRESULT ActivateDefaultAudioEndpoint(IAudioClient** ppInterface)
 
 		SAFE_RELEASE(asyncOp);
 
-	}));
+	};
+
+	if (dispatcher->HasThreadAccess)//this is ui thread
+		activateTask();//run immediately
+	else//run it on ui thread
+		dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,
+		ref new Windows::UI::Core::DispatchedHandler(activateTask));
 
 	//wait for the device to be activated
 	if (SUCCEEDED(hr))
@@ -689,7 +694,7 @@ static ALuint WASAPIDevApiMsgProc(void *ptr)
                 hr = CoInitialize(NULL);
             
 			if(SUCCEEDED(hr))
-				hr = ActivateDefaultAudioEndpoint(&data->client);
+				hr = ActivateDefaultAudioEndpoint(&data->client, data);
 
             req->result = hr;
             SetEvent(req->FinishedEvt);
@@ -813,6 +818,42 @@ static ALCenum WASAPIDevApiOpenPlayback(ALCdevice *device, const ALCchar *device
 	data->MsgEvent = CreateEventEx(NULL, NULL, 0, EVENT_ACCESS_MASK);
     if(data->hNotifyEvent == NULL || data->MsgEvent == NULL)
         hr = E_FAIL;
+
+#if WINAPI_FAMILY == WINAPI_FAMILY_APP//win store
+	//obtain ui dispatcher
+#if 1
+	auto coreWindow = Windows::UI::Core::CoreWindow::GetForCurrentThread();
+	if (coreWindow == nullptr)
+	{
+		try {
+			auto mainView = Windows::ApplicationModel::Core::CoreApplication::MainView;
+			if (mainView != nullptr)
+				coreWindow = mainView->CoreWindow;
+		}
+		catch (...)
+		{
+			coreWindow = nullptr;
+		}
+	}
+#else
+	auto coreWindow = Windows::UI::Core::CoreWindow::GetForCurrentThread();
+#endif
+	//make sure the UI window is available
+	bool assertTrue = coreWindow != nullptr;
+	_ASSERT_EXPR(assertTrue, L"You are calling a OpenAL function before UI window is visible");
+	if (!assertTrue)
+		throw std::runtime_error("You are calling a OpenAL function before UI window is visible");
+
+	//get ui dispatcher
+	data->uiDispatcher = coreWindow->Dispatcher;
+
+	//make sure we are not calling this function on UI thread
+	assertTrue = data->uiDispatcher->HasThreadAccess == false;
+	_ASSERT_EXPR(assertTrue, L"You are calling alcOpenDevice() on UI thread");
+	if (!assertTrue)
+		throw std::runtime_error("You are calling alcOpenDevice() on UI thread");
+#endif//#if WINAPI_FAMILY == WINAPI_FAMILY_APP
+
 
     if(SUCCEEDED(hr))
     {

@@ -154,7 +154,9 @@
     <ClCompile Include="..\..\Alc\bs2b.c" />
     <ClCompile Include="..\..\Alc\helpers.c" />
     <ClCompile Include="..\..\Alc\hrtf.c" />
-    <ClCompile Include="..\..\Alc\mixer.c" />
+    <ClCompile Include="..\..\Alc\mixer.c">
+      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">AssemblyAndSourceCode</AssemblerOutput>
+    </ClCompile>
     <ClCompile Include="..\..\Alc\panning.c" />
     <ClCompile Include="..\..\OpenAL32\alAuxEffectSlot.c" />
     <ClCompile Include="..\..\OpenAL32\alBuffer.c" />
