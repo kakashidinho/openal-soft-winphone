@@ -3,9 +3,11 @@ This is an OpenAL-soft shared library for Windows Store App/Windows Phone 8.0+.
 Features:
  * back-end for Windows Audio Session API (WASAPI)
 
+This is a fork of OpenAL-soft
+ 
 To build, open Visual Studio solution in winrt.vs2012 folder. 
  
-This is a fork of OpenAL-soft 
+Pre-built binaries are also provided in winrt.vs2012/bin/$(Platform)/Release folder.
 
 Important Notes:
  - Windows Store App: 
