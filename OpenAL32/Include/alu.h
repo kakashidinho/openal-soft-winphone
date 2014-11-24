@@ -237,8 +237,16 @@ static __inline int SetMixerFPUMode(void)
 #else
     int fpuState;
 #if defined(HAVE__CONTROLFP)
+#if defined _M_AMD64 || defined __x86_64__//x64 does not support precision control
+	const unsigned int newValue = _RC_CHOP;
+	const unsigned int mask = _MCW_RC;
+#else
+	const unsigned int newValue = _RC_CHOP | _PC_24;
+	const unsigned int mask = _MCW_RC | _MCW_PC;
+#endif // defined _M_AMD64 || defined __x86_64__
+
     fpuState = _controlfp(0, 0);
-    (void)_controlfp(_RC_CHOP|_PC_24, _MCW_RC|_MCW_PC);
+	(void)_controlfp(newValue, mask);
 #elif defined(HAVE_FESETROUND)
     fpuState = fegetround();
     fesetround(FE_TOWARDZERO);
@@ -253,7 +261,12 @@ static __inline void RestoreFPUMode(int state)
     fpu_control_t fpuState = state;
     _FPU_SETCW(fpuState);
 #elif defined(HAVE__CONTROLFP)
-    _controlfp(state, _MCW_RC|_MCW_PC);
+#if defined _M_AMD64 || defined __x86_64__//x64 does not support precision control
+	const unsigned int mask = _MCW_RC;
+#else
+	const unsigned int mask = _MCW_RC | _MCW_PC;
+#endif // defined _M_AMD64 || defined __x86_64__
+	_controlfp(state, mask);
 #elif defined(HAVE_FESETROUND)
     fesetround(state);
 #endif
