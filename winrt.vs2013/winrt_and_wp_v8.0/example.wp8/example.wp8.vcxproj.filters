@@ -38,7 +38,7 @@
     <ClCompile Include="CubeRenderer.cpp" />
     <ClCompile Include="Direct3DBase.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="..\..\examples\alSimple3DSound.cpp" />
+    <ClCompile Include="..\..\..\examples\alSimple3DSound.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="example.wp8.h" />
@@ -47,12 +47,12 @@
     <ClInclude Include="Direct3DBase.h" />
     <ClInclude Include="BasicTimer.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="..\..\examples\alSimple3DSound.h" />
+    <ClInclude Include="..\..\..\examples\alSimple3DSound.h" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="WMAppManifest.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Media Include="..\..\examples\DST-10Class.WAV" />
+    <Media Include="..\..\..\examples\DST-10Class.WAV" />
   </ItemGroup>
 </Project>

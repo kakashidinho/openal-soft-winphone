@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM">
       <Configuration>Debug</Configuration>
@@ -27,18 +27,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Alc\ALc.c" />
-    <ClCompile Include="..\..\Alc\alcConfig.c" />
-    <ClCompile Include="..\..\Alc\alcDedicated.c" />
-    <ClCompile Include="..\..\Alc\alcEcho.c" />
-    <ClCompile Include="..\..\Alc\alcModulator.c" />
-    <ClCompile Include="..\..\Alc\alcReverb.c" />
-    <ClCompile Include="..\..\Alc\alcRing.c" />
-    <ClCompile Include="..\..\Alc\alcThreadCpp11.cpp" />
-    <ClCompile Include="..\..\Alc\ALu.c" />
-    <ClCompile Include="..\..\Alc\backends\loopback.c" />
-    <ClCompile Include="..\..\Alc\backends\null.c" />
-    <ClCompile Include="..\..\Alc\backends\wasapi_winrt_wp8.cpp">
+    <ClCompile Include="..\..\..\Alc\ALc.c" />
+    <ClCompile Include="..\..\..\Alc\alcConfig.c" />
+    <ClCompile Include="..\..\..\Alc\alcDedicated.c" />
+    <ClCompile Include="..\..\..\Alc\alcEcho.c" />
+    <ClCompile Include="..\..\..\Alc\alcModulator.c" />
+    <ClCompile Include="..\..\..\Alc\alcReverb.c" />
+    <ClCompile Include="..\..\..\Alc\alcRing.c" />
+    <ClCompile Include="..\..\..\Alc\alcThreadCpp11.cpp" />
+    <ClCompile Include="..\..\..\Alc\ALu.c" />
+    <ClCompile Include="..\..\..\Alc\backends\loopback.c" />
+    <ClCompile Include="..\..\..\Alc\backends\null.c" />
+    <ClCompile Include="..\..\..\Alc\backends\wasapi_winrt_wp8.cpp">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">true</CompileAsWinRT>
@@ -46,21 +46,21 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</CompileAsWinRT>
     </ClCompile>
-    <ClCompile Include="..\..\Alc\bs2b.c" />
-    <ClCompile Include="..\..\Alc\helpers.c" />
-    <ClCompile Include="..\..\Alc\hrtf.c" />
-    <ClCompile Include="..\..\Alc\mixer.c" />
-    <ClCompile Include="..\..\Alc\panning.c" />
-    <ClCompile Include="..\..\OpenAL32\alAuxEffectSlot.c" />
-    <ClCompile Include="..\..\OpenAL32\alBuffer.c" />
-    <ClCompile Include="..\..\OpenAL32\alEffect.c" />
-    <ClCompile Include="..\..\OpenAL32\alError.c" />
-    <ClCompile Include="..\..\OpenAL32\alExtension.c" />
-    <ClCompile Include="..\..\OpenAL32\alFilter.c" />
-    <ClCompile Include="..\..\OpenAL32\alListener.c" />
-    <ClCompile Include="..\..\OpenAL32\alSource.c" />
-    <ClCompile Include="..\..\OpenAL32\alState.c" />
-    <ClCompile Include="..\..\OpenAL32\alThunk.c" />
+    <ClCompile Include="..\..\..\Alc\bs2b.c" />
+    <ClCompile Include="..\..\..\Alc\helpers.c" />
+    <ClCompile Include="..\..\..\Alc\hrtf.c" />
+    <ClCompile Include="..\..\..\Alc\mixer.c" />
+    <ClCompile Include="..\..\..\Alc\panning.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alAuxEffectSlot.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alBuffer.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alEffect.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alError.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alExtension.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alFilter.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alListener.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alSource.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alState.c" />
+    <ClCompile Include="..\..\..\OpenAL32\alThunk.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\config.h" />
@@ -71,42 +71,44 @@
     <ProjectName>OpenAL.winrt</ProjectName>
     <RootNamespace>OpenAL_winrt</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
-    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+    <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <AppContainerApplication>true</AppContainerApplication>
+    <ApplicationType>Windows Store</ApplicationType>
+    <ApplicationTypeRevision>8.1</ApplicationTypeRevision>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -158,8 +160,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\include;..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;isfinite=_finite;isnan=_isnan;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,8 +176,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\include;..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;isfinite=_finite;isnan=_isnan;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -190,8 +192,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\include;..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;isfinite=_finite;isnan=_isnan;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -206,7 +208,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\include;..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;isfinite=_finite;isnan=_isnan;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -221,8 +223,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\include;..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;isfinite=_finite;isnan=_isnan;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -237,8 +239,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\include;..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;isfinite=_finite;isnan=_isnan;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -253,8 +255,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\include;..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;isfinite=_finite;isnan=_isnan;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\OpenAL32\include;..;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>strcasecmp=_stricmp;strncasecmp=_strnicmp;snprintf=_snprintf;AL_ALEXT_PROTOTYPES;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

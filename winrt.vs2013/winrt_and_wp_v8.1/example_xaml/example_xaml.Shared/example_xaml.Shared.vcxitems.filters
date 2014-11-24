@@ -18,7 +18,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Content\SampleFpsTextRenderer.h">
       <Filter>Content</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\examples\alSimple3DSound.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\..\examples\alSimple3DSound.h">
       <Filter>Content</Filter>
     </ClInclude>
   </ItemGroup>
@@ -34,7 +34,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Content\SampleFpsTextRenderer.cpp">
       <Filter>Content</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\examples\alSimple3DSound.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\..\examples\alSimple3DSound.cpp">
       <Filter>Content</Filter>
     </ClCompile>
   </ItemGroup>
@@ -55,6 +55,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Media Include="$(MSBuildThisFileDirectory)..\..\..\examples\DST-10Class.WAV" />
+    <Media Include="$(MSBuildThisFileDirectory)..\..\..\..\examples\DST-10Class.WAV" />
   </ItemGroup>
 </Project>

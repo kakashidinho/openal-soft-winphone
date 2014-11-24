@@ -14,10 +14,10 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\examples\alSimple3DSound.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\..\examples\alSimple3DSound.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\examples\alSimple3DSound.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\..\examples\alSimple3DSound.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)example_xamlMain.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)example_xamlMain.cpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)pch.h" />
@@ -45,6 +45,6 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <Media Include="$(MSBuildThisFileDirectory)..\..\..\examples\DST-10Class.WAV" />
+    <Media Include="$(MSBuildThisFileDirectory)..\..\..\..\examples\DST-10Class.WAV" />
   </ItemGroup>
 </Project>

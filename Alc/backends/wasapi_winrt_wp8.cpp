@@ -105,6 +105,8 @@ ThreadMsgQueue::ThreadMsgQueue()
 	pMsgQueueLock = new CRITICAL_SECTION();
 	if (InitializeCriticalSectionEx(pMsgQueueLock, 0, 0) == 0)
 	{
+		delete pMsgQueueLock;
+		pMsgQueueLock = nullptr;
 		throw std::bad_alloc();
 	}
 	InitializeConditionVariable(&MsgNotEmptyCond);

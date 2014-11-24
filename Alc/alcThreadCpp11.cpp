@@ -1,7 +1,6 @@
 /**
  * OpenAL cross platform audio library
  * Copyright (C) 2014 by Le Hoang Quyen.
- * Copyright (C) 1999-2007 by authors.
  * This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -27,6 +26,7 @@
 #include <unordered_set>
 #include <set>
 #include <mutex>
+#include <new>
 
 #include "alMain.h"
 #include "alThunk.h"
@@ -42,6 +42,42 @@ struct ThreadInfo{
 	std::thread* thread;
 } ;
 
+#ifdef _MSC_VER
+//there are some bugs in std::mutex implementation of MSVC
+#define NO_STD_MUTEX
+#endif
+
+#ifdef NO_STD_MUTEX
+class _MutexType {
+public:
+	_MutexType()
+		: pCritSec(NULL){
+		pCritSec = new CRITICAL_SECTION();
+		if (!InitializeCriticalSectionEx(pCritSec, 0, 0))
+		{
+			delete pCritSec;
+			pCritSec = nullptr;
+
+			throw std::bad_alloc();
+		}
+	}
+
+	~_MutexType() {
+		if (pCritSec)
+		{
+			DeleteCriticalSection(pCritSec);
+			delete pCritSec;
+		}
+	}
+	void lock() { EnterCriticalSection(pCritSec); }
+	void unlock() { LeaveCriticalSection(pCritSec); }
+private:
+	CRITICAL_SECTION *pCritSec;
+};
+#else//#ifdef NO_STD_MUTEX
+typedef std::mutex _MutexType;
+#endif//#ifdef NO_STD_MUTEX
+
 /*--------thread local storage---------*/
 class _ThreadLocalData: public std::unordered_map<ULONG, void*> {
 public :
@@ -51,8 +87,8 @@ public :
 };
 static __declspec( thread )  _ThreadLocalData* currentThreadLocalData = nullptr;
 
-static std::mutex& GetTlsAllocLock(){
-	static std::mutex _tlsLock;
+static _MutexType& GetTlsAllocLock(){
+	static _MutexType _tlsLock;
 	return _tlsLock;
 }
 
@@ -178,7 +214,7 @@ BOOL cpp11_TlsSetValue(DWORD id, void* value)
 }
 
 /*----------------------*/
-void Sleep(ALuint ms)
+void cpp11_Sleep(ALuint ms)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
@@ -227,7 +263,7 @@ ALvoid *StartThread(ALuint (*func)(ALvoid*), ALvoid *ptr)
 ALuint StopThread(ALvoid *thread)
 {
 	ThreadInfo *inf = (ThreadInfo *)thread;
-    DWORD ret = 0;
+    ALuint ret = 0;
 
 	if (inf->thread->joinable())
 		inf->thread->join();
@@ -236,7 +272,7 @@ ALuint StopThread(ALvoid *thread)
 
     delete (inf);
 
-    return (ALuint)ret;
+    return ret;
 }
 
 }//extern "C"
