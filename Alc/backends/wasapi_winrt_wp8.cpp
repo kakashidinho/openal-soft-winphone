@@ -47,6 +47,10 @@
 #include <ksmedia.h>
 #endif
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 #include "alMain.h"
 #include "AL/al.h"
 #include "AL/alc.h"
@@ -815,15 +819,8 @@ static ALCenum WASAPIDevApiOpenPlayback(ALCdevice *device, const ALCchar *device
         return ALC_OUT_OF_MEMORY;
     device->ExtraData = data;
 
-    hr = S_OK;
-	data->hNotifyEvent = CreateEventEx(NULL, NULL, 0, EVENT_ACCESS_MASK);
-	data->MsgEvent = CreateEventEx(NULL, NULL, 0, EVENT_ACCESS_MASK);
-    if(data->hNotifyEvent == NULL || data->MsgEvent == NULL)
-        hr = E_FAIL;
-
 #if WINAPI_FAMILY == WINAPI_FAMILY_APP//win store
 	//obtain ui dispatcher
-#if 1
 	auto coreWindow = Windows::UI::Core::CoreWindow::GetForCurrentThread();
 	if (coreWindow == nullptr)
 	{
@@ -837,25 +834,54 @@ static ALCenum WASAPIDevApiOpenPlayback(ALCdevice *device, const ALCchar *device
 			coreWindow = nullptr;
 		}
 	}
-#else
-	auto coreWindow = Windows::UI::Core::CoreWindow::GetForCurrentThread();
-#endif
 	//make sure the UI window is available
 	bool assertTrue = coreWindow != nullptr;
-	_ASSERT_EXPR(assertTrue, L"You are calling a OpenAL function before UI window is visible");
+
 	if (!assertTrue)
-		throw std::runtime_error("You are calling a OpenAL function before UI window is visible");
+	{
+		const char errorMsg[] = "Fatal error: You are calling a OpenAL function before UI window is visible\n\n";
+#ifdef _MSC_VER
+		OutputDebugStringA(errorMsg);
+		__debugbreak();
+#else
+		_ASSERT_EXPR(false, L"You are calling a OpenAL function before UI window is visible");
+#endif
+		//throw std::runtime_error(errorMsg);
+		//crashes the system
+		free(data);
+		device->ExtraData = NULL;
+
+		return ALC_INVALID_DEVICE;
+	}
 
 	//get ui dispatcher
 	data->uiDispatcher = coreWindow->Dispatcher;
 
 	//make sure we are not calling this function on UI thread
 	assertTrue = data->uiDispatcher->HasThreadAccess == false;
-	_ASSERT_EXPR(assertTrue, L"You are calling alcOpenDevice() on UI thread");
+
 	if (!assertTrue)
-		throw std::runtime_error("You are calling alcOpenDevice() on UI thread");
+	{
+		const char errorMsg[] = "Fatal error: You are calling alcOpenDevice() on UI thread\n\n";
+#ifdef _MSC_VER
+		OutputDebugStringA(errorMsg);
+		__debugbreak();
+#else
+		_ASSERT_EXPR(false, L"You are calling alcOpenDevice() on UI thread");
+#endif
+		//throw std::runtime_error(errorMsg);
+		free(data);
+		device->ExtraData = NULL;
+
+		return ALC_INVALID_DEVICE;
+	}
 #endif//#if WINAPI_FAMILY == WINAPI_FAMILY_APP
 
+    hr = S_OK;
+    data->hNotifyEvent = CreateEventEx(NULL, NULL, 0, EVENT_ACCESS_MASK);
+    data->MsgEvent = CreateEventEx(NULL, NULL, 0, EVENT_ACCESS_MASK);
+    if(data->hNotifyEvent == NULL || data->MsgEvent == NULL)
+        hr = E_FAIL;
 
     if(SUCCEEDED(hr))
     {
