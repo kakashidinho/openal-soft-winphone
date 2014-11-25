@@ -91,6 +91,9 @@
     <ClCompile Include="..\..\Alc\backends\loopback.c">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Alc\ALc_cpp11.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\config.h">

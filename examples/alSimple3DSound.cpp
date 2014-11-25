@@ -8,8 +8,12 @@
 #include <string.h>
 #include <fstream>
 #include <stdint.h>
+#include <atomic>
 
 namespace alSimple3DSound {
+
+	typedef std::function<void(bool succeeded)> initSoundAsyncCallback_t;
+
 	struct AudioInfo
 	{
 		size_t size;
@@ -20,45 +24,72 @@ namespace alSimple3DSound {
 	};
 
 
-	static ALCcontext *g_context = NULL;
-	static ALCdevice* g_device = NULL;
-	static ALuint g_source = 0, g_buffer = 0;
+	static std::atomic<ALCcontext *> g_context = NULL;
+	static std::atomic<ALCdevice*> g_device = NULL;
+	static std::atomic<ALuint> g_source = 0, g_buffer = 0;
 
+	static bool createContextAndSound(const char* soundFile);
 	static bool createSound(const char *fileName);
-	static void createDevicesList(const char* devicesStr, std::vector<std::string> &devicesListOut);
+	static void getDevicesList(std::vector<std::string> &devicesListOut);
 
+	/*----------public functions------------------*/
 	bool initSound(const char* soundFile, unsigned int playbackDevice)
 	{
-		if (g_context)
+		if (g_context.load())
 			return false;
+		const char* deviceName = NULL;//NULL is default device
 		//get list of devices
-		const ALchar* devicesStr = alcGetString(NULL, ALC_DEVICE_SPECIFIER);
 		std::vector<std::string> deviceList;
-		createDevicesList(devicesStr, deviceList);
+		getDevicesList(deviceList);
 
-		if (playbackDevice >= deviceList.size())
+		if (playbackDevice < deviceList.size())
+			deviceName = deviceList[playbackDevice].c_str();
+
+		/*------open device---------*/
+		g_device = alcOpenDevice(deviceName);
+		if (g_device.load() != NULL)//create context and sound
+			return createContextAndSound(soundFile);
+		return false;
+	}
+
+	bool initSoundAsync(const char* soundFile, const initSoundAsyncCallback_t& callback, unsigned int playbackDevice)
+	{
+		if (g_context.load())
 			return false;
+		const char* deviceName = NULL;//NULL is default device
+		//get list of devices
+		std::vector<std::string> deviceList;
+		getDevicesList(deviceList);
 
-		//open device
-		g_device = alcOpenDevice(deviceList[playbackDevice].c_str());
-		if (g_device == NULL)
-			return false;
+		if (playbackDevice < deviceList.size())
+			deviceName = deviceList[playbackDevice].c_str();
 
-		//create context
-		g_context = alcCreateContext(g_device, NULL);
-		if (!g_context || alcMakeContextCurrent(g_context) == ALC_FALSE)
-		{
-			release();
+		/*------open device asynchronously---------*/
+		std::string soundFileCpp;
+		try {
+			soundFileCpp = soundFile;//convert to std::string
+		}
+		catch (...) { 
 			return false;
 		}
 
-		if (!createSound(soundFile))
+		//open device asynchronously
+		ALCboolean re = alcOpenDeviceAsync(deviceName,
+			[=](ALCdevice* openedDevice){
+			bool re = false;
+			g_device = openedDevice;
+			if (openedDevice != NULL)//create context and sound
+				re = createContextAndSound(soundFileCpp.c_str());
+
+			//invoke callback
+			callback(re);
+		});
+		
+		if (re == ALC_FALSE)
 		{
-			release();
+			ALenum err = alcGetError(NULL);
 			return false;
 		}
-
-		alcMakeContextCurrent(NULL);//stop using openal from this thread until start() function is called
 
 		return true;
 	}
@@ -67,24 +98,26 @@ namespace alSimple3DSound {
 	{
 		if (g_source)
 		{
-			alDeleteSources(1, &g_source);
+			ALuint sourceID = g_source.load();
+			alDeleteSources(1, &sourceID);
 			g_source = 0;
 		}
 
 		if (g_buffer)
 		{
-			alDeleteBuffers(1, &g_buffer);
+			ALuint bufferID = g_buffer.load();
+			alDeleteBuffers(1, &bufferID);
 			g_buffer = 0;
 		}
 
-		if (g_context)
+		if (g_context.load())
 		{
 			alcMakeContextCurrent(NULL);
 			alcDestroyContext(g_context);
 			g_context = NULL;
 		}
 
-		if (g_device)
+		if (g_device.load())
 		{
 			alcCloseDevice(g_device);
 			g_device = NULL;
@@ -93,7 +126,7 @@ namespace alSimple3DSound {
 
 	void start(float volume)
 	{
-		if (g_context != NULL && g_source != NULL)
+		if (g_context.load() != NULL && g_source != 0)
 		{
 			alcMakeContextCurrent(g_context);
 
@@ -114,14 +147,37 @@ namespace alSimple3DSound {
 
 	void setListenerPosition(float position[3])
 	{
-		if (g_context)
+		if (g_context.load())
 			alListener3f(AL_POSITION, position[0], position[1], position[2]);
 	}
 
 	void setSoundPosition(float pos[3])
 	{
-		if (g_source)
+		if (g_source.load())
 			alSourcefv(g_source, AL_POSITION, pos);
+	}
+
+	/*-----------------------------------*/
+
+	static bool createContextAndSound(const char* soundFile)
+	{
+		//create context
+		g_context = alcCreateContext(g_device, NULL);
+		if (g_context.load() == NULL || alcMakeContextCurrent(g_context) == ALC_FALSE)
+		{
+			release();
+			return false;
+		}
+		//create sound
+		if (!createSound(soundFile))
+		{
+			release();
+			return false;
+		}
+
+		alcMakeContextCurrent(NULL);//stop using openal from this thread until start() function is called
+
+		return true;
 	}
 
 	static bool isWaveFile(std::ifstream &is)
@@ -251,14 +307,18 @@ namespace alSimple3DSound {
 		}
 
 		//al buffer
-		alGenBuffers(1, &g_buffer);
+		ALuint bufferID;
+		alGenBuffers(1, &bufferID);
+		g_buffer = bufferID;
 		alBufferData(g_buffer, format, buffer, info.size, info.sampleRate);
 		delete[] buffer;//delete data
 		if (AL_OUT_OF_MEMORY == alGetError())
 			return false;
 
 		//al source
-		alGenSources(1, &g_source);
+		ALuint sourceID;
+		alGenSources(1, &sourceID);
+		g_source = sourceID;
 		alSourcei (g_source, AL_BUFFER, g_buffer);
 		if (AL_OUT_OF_MEMORY == alGetError())
 			return false;
@@ -269,8 +329,9 @@ namespace alSimple3DSound {
 		return true;
 	}
 
-	void createDevicesList(const char* devicesStr, std::vector<std::string> &devicesListOut)
+	void getDevicesList(std::vector<std::string> &devicesListOut)
 	{
+		const ALchar* devicesStr = alcGetString(NULL, ALC_DEVICE_SPECIFIER);
 		const ALCchar *device = devicesStr, *next = devicesStr + 1;
         size_t len = 0;
 

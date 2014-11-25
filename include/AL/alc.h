@@ -17,6 +17,9 @@ extern "C" {
 
 #if defined(_WIN32)
  #define ALC_APIENTRY __cdecl
+ #if _MSC_VER >= 1700 && defined __cplusplus
+#	define __ALC_HAS_CPP11__
+ #endif
 #else
  #define ALC_APIENTRY
 #endif
@@ -24,6 +27,12 @@ extern "C" {
 #if defined(TARGET_OS_MAC) && TARGET_OS_MAC
  #pragma export on
 #endif
+
+#if defined __ALC_HAS_CPP11__
+}//escape extern "C"
+#include <functional>//std::function
+extern "C" {//re-enter extern "C"
+#endif//#if defined __ALC_HAS_CPP11__
 
 /*
  * The ALCAPI, ALCAPIENTRY, and ALC_INVALID macros are deprecated, but are
@@ -200,8 +209,26 @@ ALC_API ALCdevice*      ALC_APIENTRY alcGetContextsDevice( ALCcontext *context )
 /*
  * Device Management
  */
+#ifndef __ALC_OPEN_DEVICE_ASYNC_ONLY__
 ALC_API ALCdevice *     ALC_APIENTRY alcOpenDevice( const ALCchar *devicename );
+#endif
 
+/*
+* Asynchronously open device
+*/
+ALC_API ALCboolean      ALC_APIENTRY alcOpenDeviceAsync(const ALCchar *devicename, void(*_open_device_callback_)(ALCdevice * resultDevice, ALCvoid* user_args), ALCvoid* user_args);
+#ifdef __ALC_HAS_CPP11__
+}
+/*
+* Asynchronously open device using C++11 std::function
+*/
+ALC_API ALCboolean      ALC_APIENTRY alcOpenDeviceAsync(const ALCchar *devicename, const std::function<void(ALCdevice * resultDevice)> &callback);
+extern "C"{
+#endif
+
+/*
+* close device
+*/
 ALC_API ALCboolean      ALC_APIENTRY alcCloseDevice( ALCdevice *device );
 
 

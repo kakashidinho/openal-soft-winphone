@@ -145,6 +145,7 @@ void CubeRenderer::CreateDeviceResources()
 	});
 
 	createCubeTask.then([this] () {
+		alSimple3DSound::release();//release old sound system
 #if LOAD_AUDIO_IN_BACKGROUND
 		auto workItemHandler = ref new WorkItemHandler(
 		[](IAsyncAction^ workItem) {

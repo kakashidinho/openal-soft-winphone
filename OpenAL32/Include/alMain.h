@@ -659,6 +659,8 @@ struct ALCdevice_struct
     BackendFuncs *Funcs;
     void         *ExtraData; // For the backend's use
 
+    ALCvoid* asyncOpenThread;//the thread that is used to asynchronously open the device
+
     ALCdevice *volatile next;
 };
 
@@ -787,6 +789,8 @@ const struct Hrtf *GetHrtf(ALCdevice *device);
 ALfloat CalcHrtfDelta(ALfloat oldGain, ALfloat newGain, const ALfloat olddir[3], const ALfloat newdir[3]);
 void GetLerpedHrtfCoeffs(const struct Hrtf *Hrtf, ALfloat elevation, ALfloat azimuth, ALfloat gain, ALfloat (*coeffs)[2], ALuint *delays);
 ALuint GetMovingHrtfCoeffs(const struct Hrtf *Hrtf, ALfloat elevation, ALfloat azimuth, ALfloat gain, ALfloat delta, ALint counter, ALfloat (*coeffs)[2], ALuint *delays, ALfloat (*coeffStep)[2], ALint *delayStep);
+
+void alcSetError(ALCdevice *device, ALCenum errorCode);
 
 void al_print(const char *func, const char *fmt, ...) PRINTF_STYLE(2,3);
 #define AL_PRINT(...) al_print(__FUNCTION__, __VA_ARGS__)

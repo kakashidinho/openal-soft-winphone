@@ -35,6 +35,7 @@
     <ClCompile Include="..\..\Alc\alcReverb.c" />
     <ClCompile Include="..\..\Alc\alcRing.c" />
     <ClCompile Include="..\..\Alc\alcThreadCpp11.cpp" />
+    <ClCompile Include="..\..\Alc\ALc_cpp11.cpp" />
     <ClCompile Include="..\..\Alc\ALu.c" />
     <ClCompile Include="..\..\Alc\backends\loopback.c" />
     <ClCompile Include="..\..\Alc\backends\null.c" />

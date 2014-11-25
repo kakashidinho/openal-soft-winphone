@@ -22,7 +22,6 @@ CubeRenderer::CubeRenderer() :
 
 CubeRenderer::~CubeRenderer()
 {
-	alSimple3DSound::release();
 }
 
 void CubeRenderer::CreateDeviceResources()
@@ -143,18 +142,13 @@ void CubeRenderer::CreateDeviceResources()
 	});
 
 	createCubeTask.then([this] () {
-		auto workItemHandler = ref new WorkItemHandler(
-		[](IAsyncAction^ workItem) {
-			//init sound on background thread
-			alSimple3DSound::initSound("DST-10Class.WAV");
-		});
-
-		auto asyncOp = ThreadPool::RunAsync(workItemHandler);
-		asyncOp->Completed = ref new AsyncActionCompletedHandler(
-		[this](IAsyncAction^ asyncInfo, AsyncStatus asyncStatus) {
-			//indicate that the loading process is finished
-			m_loadingComplete = true;
-		});
+		alSimple3DSound::release();
+		//windows store app must open OpenAL device asynchronously since it is illegal to do it on UI thread
+		alSimple3DSound::initSoundAsync(
+			"DST-10Class.WAV",
+			[this](bool succeeded){
+				m_loadingComplete = true;
+			});
 	});
 }
 

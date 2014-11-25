@@ -152,6 +152,7 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">false</CompileAsWinRT>
     </ClCompile>
+    <ClCompile Include="..\..\..\Alc\ALc_cpp11.cpp" />
     <ClCompile Include="..\..\..\Alc\ALu.c" />
     <ClCompile Include="..\..\..\Alc\backends\loopback.c" />
     <ClCompile Include="..\..\..\Alc\backends\null.c" />

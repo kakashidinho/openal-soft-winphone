@@ -119,7 +119,12 @@ static const ALCfunction alcFunctions[] = {
     { "alcDestroyContext",          (ALCvoid *) alcDestroyContext        },
     { "alcGetCurrentContext",       (ALCvoid *) alcGetCurrentContext     },
     { "alcGetContextsDevice",       (ALCvoid *) alcGetContextsDevice     },
+#ifndef __ALC_OPEN_DEVICE_ASYNC_ONLY__
     { "alcOpenDevice",              (ALCvoid *) alcOpenDevice            },
+#else
+    { "alcOpenDevice",              NULL                                 },
+#endif
+    { "alcOpenDeviceAsync",         (ALCvoid *) alcOpenDeviceAsync       },
     { "alcCloseDevice",             (ALCvoid *) alcCloseDevice           },
     { "alcGetError",                (ALCvoid *) alcGetError              },
     { "alcIsExtensionPresent",      (ALCvoid *) alcIsExtensionPresent    },
@@ -426,7 +431,7 @@ static void alc_deinit_safe(void);
 
 UIntMap TlsDestructor;
 
-#if !defined AL_LIBTYPE_STATIC && !defined _WIN_RT
+#if !defined AL_LIBTYPE_STATIC
 BOOL APIENTRY DllMain(HANDLE hModule,DWORD ul_reason_for_call,LPVOID lpReserved)
 {
     ALsizei i;
@@ -1022,7 +1027,7 @@ static ALCboolean IsValidALCChannels(ALCenum channels)
  *
  * Stores the latest ALC Error
  */
-static void alcSetError(ALCdevice *device, ALCenum errorCode)
+void alcSetError(ALCdevice *device, ALCenum errorCode)
 {
     if(TrapALCError)
     {
@@ -2554,6 +2559,93 @@ ALC_API ALCdevice* ALC_APIENTRY alcOpenDevice(const ALCchar *deviceName)
     return device;
 }
 
+/*
+* Asynchronously open device
+*/
+typedef void(*alc_open_device_callback_t)(ALCdevice *, ALCvoid*);
+
+typedef struct {
+	ALCchar * deviceName;
+	alc_open_device_callback_t alc_open_device_callback;
+	ALCvoid* user_args;
+	CRITICAL_SECTION lock;
+	ALCvoid* threadHandle;
+} alcOpenDeviceAsyncArgs_t;
+
+static void Cleanup_alcOpenDeviceAsyncArgs(alcOpenDeviceAsyncArgs_t * asyncArg)
+{
+	DeleteCriticalSection(&asyncArg->lock);
+	free(asyncArg->deviceName);
+	free(asyncArg);
+}
+
+/* The async function */
+static ALuint  alcOpenDeviceAsyncFunc(void *arg)
+{
+	alcOpenDeviceAsyncArgs_t* asyncArg = (alcOpenDeviceAsyncArgs_t*)arg;
+	ALCdevice* device = alcOpenDevice(asyncArg->deviceName);
+	if (device != NULL)
+	{
+		EnterCriticalSection(&asyncArg->lock);
+		device->asyncOpenThread = asyncArg->threadHandle;//store this thread's handle so that it can be deleted when closing the device
+		LeaveCriticalSection(&asyncArg->lock);
+	}
+
+	//finished, now invoke callback
+	asyncArg->alc_open_device_callback(device, asyncArg->user_args);
+
+	//cleanup
+	Cleanup_alcOpenDeviceAsyncArgs(asyncArg);
+
+	return 1;
+}
+
+ALC_API ALCboolean ALC_APIENTRY alcOpenDeviceAsync(
+	const ALCchar *devicename, 
+	void(*_open_device_callback_)(ALCdevice *, ALCvoid* user_args), 
+	ALCvoid* user_args)
+{
+	ALenum err = ALC_NO_ERROR;
+	alcOpenDeviceAsyncArgs_t *args = calloc(1, sizeof(alcOpenDeviceAsyncArgs_t));
+	if (args != NULL && devicename != NULL)
+	{
+		//copy device name
+		args->deviceName = alc_strdup(devicename);
+		if (args->deviceName == NULL)//failed
+		{
+			free(args);
+			args = NULL;
+		}
+	}//if (args != NULL && devicename != NULL)
+
+	if (args != NULL){
+		InitializeCriticalSection(&args->lock);
+		args->alc_open_device_callback = _open_device_callback_;
+		args->user_args = user_args;
+		
+		//create background thread
+		EnterCriticalSection(&args->lock);//lock the "args" object so that the thread only starts processing after args->threadHandle is written
+		args->threadHandle = StartThread(alcOpenDeviceAsyncFunc, args);
+		LeaveCriticalSection(&args->lock);
+
+		if (args->threadHandle == NULL)
+		{
+			Cleanup_alcOpenDeviceAsyncArgs(args);
+			err = ALC_OUT_OF_MEMORY;
+		}
+	}// if (args != NULL)
+	else
+		err = ALC_OUT_OF_MEMORY;
+
+	if (err != ALC_NO_ERROR)
+	{
+		alcSetError(NULL, err);
+		return ALC_FALSE;
+	}
+
+	return ALC_TRUE;
+}
+
 /* alcCloseDevice
  *
  * Close the specified Device
@@ -2588,6 +2680,10 @@ ALC_API ALCboolean ALC_APIENTRY alcCloseDevice(ALCdevice *pDevice)
         pDevice->Flags &= ~DEVICE_RUNNING;
     }
     ALCdevice_ClosePlayback(pDevice);
+
+	//close async thread handle if there is one
+    if (pDevice->asyncOpenThread != NULL)
+        StopThread(pDevice->asyncOpenThread);
 
     ALCdevice_DecRef(pDevice);
 

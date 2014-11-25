@@ -11,6 +11,7 @@ using namespace DirectX;
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 
+#define OAL_DEVICE_ID 0 //alSimple3DSound::DEFAULT_PLAYBACK_DEVICE
 #define SOUND_DISTANCE_SCALE 10.0f
 #define SOUND_VOLUME 2.0f
 
@@ -352,18 +353,19 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 	// Once the cube is loaded, the object is ready to be rendered.
 	createCubeTask.then([this] () {
-		auto workItemHandler = ref new WorkItemHandler(
-			[](IAsyncAction^ workItem) {
-			//init sound on background thread
-			alSimple3DSound::initSound("DST-10Class.WAV");
-		});
-
-		auto asyncOp = ThreadPool::RunAsync(workItemHandler);
-		asyncOp->Completed = ref new AsyncActionCompletedHandler(
-			[this](IAsyncAction^ asyncInfo, AsyncStatus asyncStatus) {
-			//indicate that the loading process is finished
-			m_loadingComplete = true;
-		});
+#if WINAPI_FAMILY == WINAPI_FAMILY_APP
+		//windows store app must open OpenAL device asynchronously since it is illegal to do it on UI thread
+		alSimple3DSound::initSoundAsync(
+			"DST-10Class.WAV",
+			[this](bool succeeded){
+				m_loadingComplete = true;
+			},
+			OAL_DEVICE_ID
+			);
+#else
+		alSimple3DSound::initSound("DST-10Class.WAV", OAL_DEVICE_ID);
+		m_loadingComplete = true;
+#endif
 	});
 }
 
