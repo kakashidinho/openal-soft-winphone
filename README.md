@@ -1,6 +1,7 @@
 This is an OpenAL-soft shared library for Windows Store App/Windows Phone 8.0+.
 
 Features:
+ * back-end for Xaudio2 (default)
  * back-end for Windows Audio Session API (WASAPI)
 
 This is a fork of OpenAL-soft
