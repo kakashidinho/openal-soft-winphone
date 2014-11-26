@@ -54,6 +54,7 @@
 #include "alMain.h"
 #include "AL/al.h"
 #include "AL/alc.h"
+#include "thread_msg_queue_cpp11.h"
 
 using namespace Microsoft::WRL;
 
@@ -88,87 +89,6 @@ static inline HRESULT CoInitialize(void *arg) {
 #define SAFE_RELEASE(p) {if (p) {(p)->Release(); (p) = 0;}}
 #endif
 
-//ThreadMsgQueue
-class ThreadMsgQueue {
-public:
-	ThreadMsgQueue();
-	~ThreadMsgQueue();
-
-	BOOL PostMsg(UINT MsgType, WPARAM wParam, LPARAM lParam);
-	BOOL GetMsg(MSG* msgOut);
-private:
-	std::list<MSG> MsgQueue;
-
-	CRITICAL_SECTION* pMsgQueueLock;
-	CONDITION_VARIABLE MsgNotEmptyCond;
-};
-
-ThreadMsgQueue::ThreadMsgQueue()
-	: pMsgQueueLock(nullptr)
-{
-	pMsgQueueLock = new CRITICAL_SECTION();
-	if (InitializeCriticalSectionEx(pMsgQueueLock, 0, 0) == 0)
-	{
-		delete pMsgQueueLock;
-		pMsgQueueLock = nullptr;
-		throw std::bad_alloc();
-	}
-	InitializeConditionVariable(&MsgNotEmptyCond);
-}
-
-ThreadMsgQueue::~ThreadMsgQueue()
-{
-	if (pMsgQueueLock)
-		DeleteCriticalSection(pMsgQueueLock);
-	delete pMsgQueueLock;
-}
-
-BOOL ThreadMsgQueue::PostMsg(UINT MsgType, WPARAM wParam, LPARAM lParam)
-{
-	BOOL re = TRUE;
-	MSG newMsg;
-	newMsg.message = MsgType;
-	newMsg.wParam = wParam;
-	newMsg.lParam = lParam;
-
-	//push to queue
-	EnterCriticalSection(pMsgQueueLock);
-
-	try {
-		MsgQueue.push_back(newMsg);
-	}
-	catch (...) {
-		re = FALSE;
-	}
-	//notify that the queue is not empty
-	WakeConditionVariable(&MsgNotEmptyCond);
-
-	LeaveCriticalSection(pMsgQueueLock);
-
-	return re;
-}
-
-
-BOOL ThreadMsgQueue::GetMsg(MSG* msgOut)
-{
-	EnterCriticalSection(pMsgQueueLock);
-
-	//wait for the queue to have at least one message
-	if (MsgQueue.size() == 0)
-		SleepConditionVariableCS(&MsgNotEmptyCond, pMsgQueueLock, INFINITE);
-
-
-	//retrieve the oldest message
-	*msgOut = MsgQueue.back();
-	MsgQueue.pop_back();
-
-	LeaveCriticalSection(pMsgQueueLock);
-
-	if (msgOut->message == WM_QUIT)
-		return 0;
-
-	return 1;
-}
 
 //API's data
 typedef struct {
@@ -244,7 +164,7 @@ public:
 static const ALCchar mmDevice[] = "WASAPI Default";
 
 
-static ThreadMsgQueue *g_MsgQueue = nullptr;
+static MsgQueue_t *g_MsgQueue = nullptr;
 static ALvoid* g_MsgQueueThread = nullptr;
 
 typedef struct {
@@ -252,10 +172,10 @@ typedef struct {
     HRESULT result;
 } ThreadRequest;
 
-#define WM_USER_OpenDevice  (WM_USER+0)
-#define WM_USER_ResetDevice (WM_USER+1)
-#define WM_USER_StopDevice  (WM_USER+2)
-#define WM_USER_CloseDevice (WM_USER+3)
+#define TM_USER_OpenDevice  (WM_USER+0)
+#define TM_USER_ResetDevice (WM_USER+1)
+#define TM_USER_StopDevice  (WM_USER+2)
+#define TM_USER_CloseDevice (WM_USER+3)
 
 static HRESULT WaitForResponse(ThreadRequest *req)
 {
@@ -677,7 +597,7 @@ static ALuint WASAPIDevApiMsgProc(void *ptr)
     WASAPIDevApiData *data;
     ALCdevice *device;
     HRESULT hr;
-    MSG msg;
+    QueueMsg_t msg;
 
     TRACE("Starting message thread\n");
 
@@ -690,7 +610,7 @@ static ALuint WASAPIDevApiMsgProc(void *ptr)
         TRACE("Got message %u\n", msg.message);
         switch(msg.message)
         {
-        case WM_USER_OpenDevice:
+        case TM_USER_OpenDevice:
             req = (ThreadRequest*)msg.wParam;
             device = (ALCdevice*)msg.lParam;
 			data = (WASAPIDevApiData*)device->ExtraData;
@@ -706,7 +626,7 @@ static ALuint WASAPIDevApiMsgProc(void *ptr)
             SetEvent(req->FinishedEvt);
             continue;
 
-        case WM_USER_ResetDevice:
+        case TM_USER_ResetDevice:
             req = (ThreadRequest*)msg.wParam;
             device = (ALCdevice*)msg.lParam;
 
@@ -714,7 +634,7 @@ static ALuint WASAPIDevApiMsgProc(void *ptr)
             SetEvent(req->FinishedEvt);
             continue;
 
-        case WM_USER_StopDevice:
+        case TM_USER_StopDevice:
             req = (ThreadRequest*)msg.wParam;
             device = (ALCdevice*)msg.lParam;
 			data = (WASAPIDevApiData *)device->ExtraData;
@@ -734,7 +654,7 @@ static ALuint WASAPIDevApiMsgProc(void *ptr)
             SetEvent(req->FinishedEvt);
             continue;
 
-        case WM_USER_CloseDevice:
+        case TM_USER_CloseDevice:
             req = (ThreadRequest*)msg.wParam;
             device = (ALCdevice*)msg.lParam;
 			data = (WASAPIDevApiData *)device->ExtraData;
@@ -774,7 +694,7 @@ static BOOL WASAPIDevApiLoad(void)
         else
         {
 			try {
-				g_MsgQueue = new ThreadMsgQueue();//create message queue
+				g_MsgQueue = new MsgQueue_t();//create message queue
 			}
 			catch (...)
 			{
@@ -888,7 +808,7 @@ static ALCenum WASAPIDevApiOpenPlayback(ALCdevice *device, const ALCchar *device
         ThreadRequest req = { data->MsgEvent, 0 };
 
         hr = E_FAIL;
-		if (g_MsgQueue->PostMsg(WM_USER_OpenDevice, (WPARAM)&req, (LPARAM)device))
+		if (g_MsgQueue->PostMsg(TM_USER_OpenDevice, &req, device))
             hr = WaitForResponse(&req);
     }
 
@@ -917,7 +837,7 @@ static void WASAPIDevApiClosePlayback(ALCdevice *device)
 	WASAPIDevApiData *data = (WASAPIDevApiData *)device->ExtraData;
     ThreadRequest req = { data->MsgEvent, 0 };
 
-	if (g_MsgQueue->PostMsg(WM_USER_CloseDevice, (WPARAM)&req, (LPARAM)device))
+	if (g_MsgQueue->PostMsg(TM_USER_CloseDevice, &req, device))
 		(void)WaitForResponse(&req);
 
     CloseHandle(data->MsgEvent);
@@ -936,7 +856,7 @@ static ALCboolean WASAPIDevApiResetPlayback(ALCdevice *device)
     ThreadRequest req = { data->MsgEvent, 0 };
     HRESULT hr = E_FAIL;
 
-	if (g_MsgQueue->PostMsg(WM_USER_ResetDevice, (WPARAM)&req, (LPARAM)device))
+	if (g_MsgQueue->PostMsg(TM_USER_ResetDevice, &req, device))
         hr = WaitForResponse(&req);
 
     return SUCCEEDED(hr) ? ALC_TRUE : ALC_FALSE;
@@ -947,7 +867,7 @@ static void WASAPIDevApiStopPlayback(ALCdevice *device)
 	WASAPIDevApiData *data = (WASAPIDevApiData *)device->ExtraData;
     ThreadRequest req = { data->MsgEvent, 0 };
 
-    if(g_MsgQueue->PostMsg(WM_USER_StopDevice, (WPARAM)&req, (LPARAM)device))
+    if(g_MsgQueue->PostMsg(TM_USER_StopDevice, &req, device))
         (void)WaitForResponse(&req);
 }
 
@@ -978,8 +898,8 @@ void alcWASAPIDevApiDeinit(void)
 {
 	if (g_MsgQueueThread)
     {
-		TRACE("Sending WM_QUIT\n");
-		g_MsgQueue->PostMsg(WM_QUIT, 0, 0);//post quit message
+		TRACE("Sending TM_QUIT\n");
+		g_MsgQueue->PostMsg(TM_QUIT, 0, 0);//post quit message
 
 		//release thread and its message queue
 		StopThread(g_MsgQueueThread);

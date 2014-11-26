@@ -9,10 +9,12 @@
 #include <fstream>
 #include <stdint.h>
 #include <atomic>
+#include <mutex>
 
 namespace alSimple3DSound {
 
 	typedef std::function<void(bool succeeded)> initSoundAsyncCallback_t;
+	typedef std::lock_guard<std::mutex> scope_lock_t;
 
 	struct AudioInfo
 	{
@@ -23,10 +25,10 @@ namespace alSimple3DSound {
 		size_t sampleRate;
 	};
 
-
-	static std::atomic<ALCcontext *> g_context = NULL;
-	static std::atomic<ALCdevice*> g_device = NULL;
-	static std::atomic<ALuint> g_source = 0, g_buffer = 0;
+	static std::mutex g_contextLock;
+	static ALCcontext * g_context = NULL;
+	static ALCdevice* g_device = NULL;
+	static ALuint g_source = 0, g_buffer = 0;
 
 	static bool createContextAndSound(const char* soundFile);
 	static bool createSound(const char *fileName);
@@ -35,7 +37,8 @@ namespace alSimple3DSound {
 	/*----------public functions------------------*/
 	bool initSound(const char* soundFile, unsigned int playbackDevice)
 	{
-		if (g_context.load())
+		scope_lock_t lock(g_contextLock);
+		if (g_context)
 			return false;
 		const char* deviceName = NULL;//NULL is default device
 		//get list of devices
@@ -47,14 +50,15 @@ namespace alSimple3DSound {
 
 		/*------open device---------*/
 		g_device = alcOpenDevice(deviceName);
-		if (g_device.load() != NULL)//create context and sound
+		if (g_device != NULL)//create context and sound
 			return createContextAndSound(soundFile);
 		return false;
 	}
 
 	bool initSoundAsync(const char* soundFile, const initSoundAsyncCallback_t& callback, unsigned int playbackDevice)
 	{
-		if (g_context.load())
+		scope_lock_t lock(g_contextLock);
+		if (g_context)
 			return false;
 		const char* deviceName = NULL;//NULL is default device
 		//get list of devices
@@ -76,6 +80,7 @@ namespace alSimple3DSound {
 		//open device asynchronously
 		ALCboolean re = alcOpenDeviceAsync(deviceName,
 			[=](ALCdevice* openedDevice){
+			scope_lock_t lock(g_contextLock);
 			bool re = false;
 			g_device = openedDevice;
 			if (openedDevice != NULL)//create context and sound
@@ -96,28 +101,29 @@ namespace alSimple3DSound {
 
 	void release()
 	{
+		scope_lock_t lock(g_contextLock);
 		if (g_source)
 		{
-			ALuint sourceID = g_source.load();
+			ALuint sourceID = g_source;
 			alDeleteSources(1, &sourceID);
 			g_source = 0;
 		}
 
 		if (g_buffer)
 		{
-			ALuint bufferID = g_buffer.load();
+			ALuint bufferID = g_buffer;
 			alDeleteBuffers(1, &bufferID);
 			g_buffer = 0;
 		}
 
-		if (g_context.load())
+		if (g_context)
 		{
 			alcMakeContextCurrent(NULL);
 			alcDestroyContext(g_context);
 			g_context = NULL;
 		}
 
-		if (g_device.load())
+		if (g_device)
 		{
 			alcCloseDevice(g_device);
 			g_device = NULL;
@@ -126,7 +132,8 @@ namespace alSimple3DSound {
 
 	void start(float volume)
 	{
-		if (g_context.load() != NULL && g_source != 0)
+		scope_lock_t lock(g_contextLock);
+		if (g_context != NULL && g_source != 0)
 		{
 			alcMakeContextCurrent(g_context);
 
@@ -147,13 +154,13 @@ namespace alSimple3DSound {
 
 	void setListenerPosition(float position[3])
 	{
-		if (g_context.load())
+		if (g_context)
 			alListener3f(AL_POSITION, position[0], position[1], position[2]);
 	}
 
 	void setSoundPosition(float pos[3])
 	{
-		if (g_source.load())
+		if (g_source)
 			alSourcefv(g_source, AL_POSITION, pos);
 	}
 
@@ -163,7 +170,7 @@ namespace alSimple3DSound {
 	{
 		//create context
 		g_context = alcCreateContext(g_device, NULL);
-		if (g_context.load() == NULL || alcMakeContextCurrent(g_context) == ALC_FALSE)
+		if (g_context == NULL || alcMakeContextCurrent(g_context) == ALC_FALSE)
 		{
 			release();
 			return false;

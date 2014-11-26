@@ -60,6 +60,9 @@ static struct BackendInfo BackendList[] = {
 #ifdef HAVE_SNDIO
     { "sndio", alc_sndio_init, alc_sndio_deinit, alc_sndio_probe, EmptyFuncs },
 #endif
+#if defined HAVE_XAUDIO2
+	{ "xaudio2", alc_xaudio2_init, alc_xaudio2_deinit, alc_xaudio2_probe, EmptyFuncs },
+#endif
 #ifdef HAVE_WASAPIDEVAPI
 	{ "wasapidevapi", alcWASAPIDevApiInit, alcWASAPIDevApiDeinit, alcWASAPIDevApiProbe, EmptyFuncs },
 #endif

@@ -94,6 +94,12 @@
     <ClCompile Include="..\..\..\Alc\ALc_cpp11.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Alc\backends\xaudio2.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Alc\backends\thread_msg_queue_cpp11.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\config.h">
