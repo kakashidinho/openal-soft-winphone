@@ -22,9 +22,11 @@ namespace example_xaml
 		void StopTracking();
 		bool IsTracking() { return m_tracking; }
 
-
+		void OnKeyPressed(char key);
 	private:
 		void Rotate(float radians);
+		void InitSound();
+		void ReleaseSound();
 
 	private:
 		// Cached pointer to device resources.
@@ -43,8 +45,9 @@ namespace example_xaml
 		uint32	m_indexCount;
 
 		// Variables used with the rendering loop.
-		volatile bool m_loadingComplete;
-		bool m_firstUpdate;
+		volatile bool m_renderLoadingComplete;
+		bool m_firstSoundUpdate;
+		volatile bool m_loadingSoundComplete;
 		float	m_degreesPerSecond;
 		bool	m_tracking; 
 		DirectX::XMFLOAT3 m_oriCubePosition;

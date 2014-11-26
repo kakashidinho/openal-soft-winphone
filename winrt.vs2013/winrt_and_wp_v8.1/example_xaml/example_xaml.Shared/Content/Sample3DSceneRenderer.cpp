@@ -17,8 +17,9 @@ using namespace Windows::System::Threading;
 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
-	m_loadingComplete(false),
-	m_firstUpdate(true),
+	m_renderLoadingComplete(false),
+	m_loadingSoundComplete(false),
+	m_firstSoundUpdate(true),
 	m_degreesPerSecond(45),
 	m_indexCount(0),
 	m_tracking(false),
@@ -105,12 +106,12 @@ void Sample3DSceneRenderer::Rotate(float radians)
 
 
 	//update sound
-	if (m_loadingComplete)
+	if (m_loadingSoundComplete)
 	{
 		//init sound
-		if (m_firstUpdate)
+		if (m_firstSoundUpdate)
 		{
-			m_firstUpdate = false;
+			m_firstSoundUpdate = false;
 
 			//start the sound
 			alSimple3DSound::start(SOUND_VOLUME);
@@ -158,7 +159,7 @@ void Sample3DSceneRenderer::StopTracking()
 void Sample3DSceneRenderer::Render()
 {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
-	if (!m_loadingComplete)
+	if (!m_renderLoadingComplete)
 	{
 		return;
 	}
@@ -223,6 +224,14 @@ void Sample3DSceneRenderer::Render()
 		0,
 		0
 		);
+}
+
+void Sample3DSceneRenderer::OnKeyPressed(char key)
+{
+	if (key == 'a')
+		InitSound();
+	else if (key == 'd')
+		ReleaseSound();
 }
 
 void Sample3DSceneRenderer::CreateDeviceDependentResources()
@@ -353,25 +362,17 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 	// Once the cube is loaded, the object is ready to be rendered.
 	createCubeTask.then([this] () {
-#if WINAPI_FAMILY == WINAPI_FAMILY_APP
-		//windows store app must open OpenAL device asynchronously since it is illegal to do it on UI thread
-		alSimple3DSound::initSoundAsync(
-			"DST-10Class.WAV",
-			[this](bool succeeded){
-				m_loadingComplete = true;
-			},
-			OAL_DEVICE_ID
-			);
-#else
-		alSimple3DSound::initSound("DST-10Class.WAV", OAL_DEVICE_ID);
-		m_loadingComplete = true;
-#endif
+		m_renderLoadingComplete = true;
+
+		//init sound
+		InitSound();
 	});
+
 }
 
 void Sample3DSceneRenderer::ReleaseDeviceDependentResources()
 {
-	m_loadingComplete = false;
+	m_renderLoadingComplete = false;
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShader.Reset();
@@ -379,5 +380,31 @@ void Sample3DSceneRenderer::ReleaseDeviceDependentResources()
 	m_vertexBuffer.Reset();
 	m_indexBuffer.Reset();
 
+	ReleaseSound();
+}
+
+void Sample3DSceneRenderer::ReleaseSound()
+{
+	m_loadingSoundComplete = false;
 	alSimple3DSound::release();
+}
+
+void Sample3DSceneRenderer::InitSound()
+{
+	if (m_loadingSoundComplete)
+		return;
+	m_firstSoundUpdate = true;
+#if WINAPI_FAMILY == WINAPI_FAMILY_APP
+	//windows store app must open OpenAL device asynchronously since it is illegal to do it on UI thread
+	alSimple3DSound::initSoundAsync(
+		"DST-10Class.WAV",
+		[this](bool succeeded){
+			m_loadingSoundComplete = true;
+		},
+		OAL_DEVICE_ID
+		);
+#else
+	alSimple3DSound::initSound("DST-10Class.WAV", OAL_DEVICE_ID);
+	m_loadingSoundComplete = true;
+#endif
 }

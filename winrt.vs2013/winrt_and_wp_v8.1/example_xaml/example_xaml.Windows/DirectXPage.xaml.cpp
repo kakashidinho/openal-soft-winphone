@@ -36,6 +36,8 @@ DirectXPage::DirectXPage():
 	window->VisibilityChanged +=
 		ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &DirectXPage::OnVisibilityChanged);
 
+	window->KeyUp += ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &DirectXPage::OnKeyPressed);
+
 	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
 
 	currentDisplayInformation->DpiChanged +=
@@ -130,6 +132,15 @@ void DirectXPage::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEvent
 	{
 		m_main->StopRenderLoop();
 	}
+}
+
+void DirectXPage::OnKeyPressed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
+{
+	int keyCode = (int)args->VirtualKey;
+	if (keyCode >= 'A' && keyCode <= 'Z')
+		keyCode += 'a' - 'A';
+
+	m_main->KeyPressed(keyCode);
 }
 
 // DisplayInformation event handlers.

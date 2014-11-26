@@ -14,6 +14,7 @@ namespace example_xaml
 		example_xamlMain(const std::shared_ptr<DX::DeviceResources>& deviceResources);
 		~example_xamlMain();
 		void CreateWindowSizeDependentResources();
+		void KeyPressed(char key);
 		void StartTracking() { m_sceneRenderer->StartTracking(); }
 		void TrackingUpdate(float positionX) { m_pointerLocationX = positionX; }
 		void StopTracking() { m_sceneRenderer->StopTracking(); }
