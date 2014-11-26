@@ -51,19 +51,6 @@ static const ALCchar xaudio2_device[] = "XAudio2 Default";
 
 class XAudio2SourceVoiceCallback;
 
-struct XAudio2Buffer{
-	XAudio2Buffer()
-	{
-		memset(this, 0, sizeof(XAudio2Buffer));
-	}
-
-	BYTE* data;
-	size_t bufferSize;
-	size_t pendingBufferRegionSize;
-	size_t lastWritePosition;//last written position
-
-	ULONG refCount;
-};
 
 typedef struct
 {
@@ -72,8 +59,8 @@ typedef struct
 	IXAudio2SourceVoice* sourceVoice;
 	XAudio2SourceVoiceCallback* sourceVoiceCallback;
 
-	XAudio2Buffer * buffers;
-	size_t numBuffers;
+	BYTE * buffer;
+	size_t bufferSize;
 
 	size_t frameSize;
 
@@ -119,8 +106,8 @@ class XAudio2SourceVoiceCallback : public  IXAudio2VoiceCallback
 {
 public:
 	XAudio2SourceVoiceCallback(ALCdevice* _device)
-	: device(_device){
-
+		: device(_device), callbackEvent(NULL)
+	{
 	}
 
 	STDMETHOD_(void, OnBufferEnd) (void * pBufferContext);
@@ -140,107 +127,76 @@ public:
 	STDMETHOD_(void, OnVoiceError) (void * pBufferContext, HRESULT Error) {
 		//TO DO
 	}
+
+	HANDLE callbackEvent;
+
 private:
-	void SubmitBufferRegion(XAudio2Buffer* buffer, UINT numByteRequired);
+	void CreateBuffer(XAudio2Data* data, UINT requiredBytes);
 
 	ALCdevice* device;
 };
 
-void XAudio2SourceVoiceCallback::SubmitBufferRegion(XAudio2Buffer* buffer, UINT numBytesRequired)
+
+void XAudio2SourceVoiceCallback::CreateBuffer(XAudio2Data* data, UINT numBytesRequired)
 {
-	if (numBytesRequired == 0)
-		return;
-	HRESULT hr;
-	XAudio2Data* data = (XAudio2Data*)device->ExtraData;
-	size_t spaceLeft = buffer->bufferSize - buffer->lastWritePosition;
-	size_t bufferRegionSize = min(numBytesRequired, spaceLeft);
-	BYTE* bufferRegionData = buffer->data + buffer->lastWritePosition;
-
-	size_t samples = bufferRegionSize / data->frameSize;
-	bufferRegionSize = samples * data->frameSize;//must be divisible by frame size
-
-	aluMixData(device, bufferRegionData, samples);//mix data
-
-	buffer->lastWritePosition += bufferRegionSize;
-
-#if 0//audio glitch simulation
-	for (int i = 0; i < 10000000; ++i)
+	if (data->buffer != NULL)
+		delete[] data->buffer;
+	//create buffer to holde the number of required bytes
+	data->bufferSize = numBytesRequired / data->frameSize * data->frameSize;//must be divisible by frame size
+	data->buffer = new (std::nothrow) BYTE[data->bufferSize];
+	if (data->buffer == NULL)
 	{
-		int a = 0;
+		ERR("create buffer failed\n");
 	}
-#endif
-
-	/*------------submit buffer region-------------*/
-	XAUDIO2_BUFFER bufferRegionToSubmit;
-	memset(&bufferRegionToSubmit, 0, sizeof(bufferRegionToSubmit));
-	bufferRegionToSubmit.AudioBytes = bufferRegionSize;
-	bufferRegionToSubmit.pAudioData = bufferRegionData;
-	bufferRegionToSubmit.pContext = buffer;
-
-	hr = data->sourceVoice->SubmitSourceBuffer(&bufferRegionToSubmit);
-	if (FAILED(hr))
-	{
-		ERR("SubmitSourceBuffer() failed: 0x%08lx\n", hr);
-	}
-	else
-		buffer->refCount++;
 }
 
 /* this is called when xaudio2 engine finished reading a region of data */
 COM_DECLSPEC_NOTHROW void STDMETHODCALLTYPE XAudio2SourceVoiceCallback::OnBufferEnd(void * bufferContext)
 {
-	XAudio2Data* data = (XAudio2Data*)device->ExtraData;
-	LONG running;
-	InterlockedExchange(&running, data->running);
-	if (running)
-	{
-		auto buffer = (XAudio2Buffer*)bufferContext;
-		buffer->refCount--;
-		if (buffer->refCount == 0)//buffer is available again
-		{
-			buffer->lastWritePosition = 0;
-			if (buffer->pendingBufferRegionSize)
-			{
-				SubmitBufferRegion(buffer, buffer->pendingBufferRegionSize);
-				buffer->pendingBufferRegionSize = 0;
-			}
-		}
-	}//if (isRunning)
 }
 
 COM_DECLSPEC_NOTHROW void STDMETHODCALLTYPE XAudio2SourceVoiceCallback::OnVoiceProcessingPassStart(UINT32 numBytesRequired)
 {
 	XAudio2Data* data = (XAudio2Data*)device->ExtraData;
 	LONG running;
-	InterlockedExchange(&running, data->running);
-	if (running)
+
+	if (data->buffer == NULL)
 	{
-		auto buffer = data->buffers + data->currentBufferIdx;
-		size_t spaceLeft = buffer->bufferSize - buffer->lastWritePosition;
-
-		if (numBytesRequired > spaceLeft)//not enough space left, jumpt to next buffer
+		CreateBuffer(data, numBytesRequired);
+		SetEvent(this->callbackEvent);
+	}
+	else {
+		InterlockedExchange(&running, data->running);
+		if (running)
 		{
-			size_t numTried = 1;
-			do//find next available buffer
+			HRESULT hr;
+			if (data->bufferSize < numBytesRequired)
+				CreateBuffer(data, numBytesRequired);
+			size_t samples = numBytesRequired / data->frameSize;
+			size_t bufferRegionSize = samples * data->frameSize;//must be divisible by frame size
+
+			aluMixData(device, data->buffer, samples);//mix data
+
+#if 0//audio glitch simulation
+			for (int i = 0; i < 10000000; ++i)
 			{
-				data->currentBufferIdx = (data->currentBufferIdx + 1) % data->numBuffers;
-				buffer = data->buffers + data->currentBufferIdx;
-				spaceLeft = buffer->bufferSize - buffer->lastWritePosition;
+				int a = 0;
+			}
+#endif
 
-				++numTried;
-			} while (numTried < data->numBuffers && numBytesRequired > spaceLeft);
-		}
+			/*------------submit buffer region-------------*/
+			XAUDIO2_BUFFER bufferRegionToSubmit;
+			memset(&bufferRegionToSubmit, 0, sizeof(bufferRegionToSubmit));
+			bufferRegionToSubmit.AudioBytes = bufferRegionSize;
+			bufferRegionToSubmit.pAudioData = data->buffer;
 
-		if (numBytesRequired > spaceLeft)//no buffer available
-		{
-			//we must wait for the buffer to be fully used by XAudio2 before submitting data again
-			buffer->pendingBufferRegionSize += numBytesRequired;
-		}
-		else
-		{
-			this->SubmitBufferRegion(buffer, numBytesRequired);
-		}//if (numBytesRequired > spaceLeft)
-	}//if (state & STATE_RUNNING)
+			hr = data->sourceVoice->SubmitSourceBuffer(&bufferRegionToSubmit);
+			if (FAILED(hr))
+			{
+				ERR("SubmitSourceBuffer() failed: 0x%08lx\n", hr);
+			}
+		}//if (running)
+	}//if (data->buffer == NULL)
 }
 
 /*--------------------------------*/
@@ -256,23 +212,18 @@ static void xaudio2_cleanup_sourcevoice_data(XAudio2Data* data)
 	}
 	if (data->sourceVoiceCallback)
 	{
+		if (data->sourceVoiceCallback->callbackEvent)
+			CloseHandle(data->sourceVoiceCallback->callbackEvent);
 		delete (data->sourceVoiceCallback);
 		data->sourceVoiceCallback = NULL;
 	}
 
-	//cleanup buffers
-	if (data->buffers != NULL)
+	//cleanup buffer
+	if (data->buffer != NULL)
 	{
-		for (size_t i = 0; i < data->numBuffers; ++i)
-		{
-			if (data->buffers[i].data != NULL)
-				delete[] data->buffers[i].data;
-			data->buffers[i].data = NULL;
-			data->buffers[i].bufferSize = 0;
-		}
-		delete[](data->buffers);
+		delete[](data->buffer);
 
-		data->buffers = NULL;
+		data->buffer = NULL;
 	}
 }
 
@@ -327,10 +278,6 @@ ALCboolean xaudio2_do_reset_playback(ALCdevice * device)
 	DWORD outputchannelMasks;
 	XAUDIO2_VOICE_DETAILS outputDetails;
 	WAVEFORMATEXTENSIBLE SourceType;
-
-	device->UpdateSize = (ALuint64)device->UpdateSize * 44100 / device->Frequency;
-	device->UpdateSize = device->UpdateSize * device->NumUpdates / 2;
-	device->NumUpdates = 2;
 
 	data->masterVoice->GetChannelMask(&outputchannelMasks);
 	data->masterVoice->GetVoiceDetails(&outputDetails);
@@ -432,6 +379,13 @@ ALCboolean xaudio2_do_reset_playback(ALCdevice * device)
 		return ALC_FALSE;
 	}
 
+	data->sourceVoiceCallback->callbackEvent = CreateEventEx(NULL, NULL, 0, EVENT_ACCESS_MASK);
+	if (data->sourceVoiceCallback->callbackEvent == NULL)
+	{
+		ERR("create callback event failed\n");
+		return ALC_FALSE;
+	}
+
 	hr = data->xAudioObj->CreateSourceVoice(&data->sourceVoice, &SourceType.Format, 0,
 		XAUDIO2_DEFAULT_FREQ_RATIO, data->sourceVoiceCallback);
 	if (FAILED(hr))
@@ -440,33 +394,22 @@ ALCboolean xaudio2_do_reset_playback(ALCdevice * device)
 		return ALC_FALSE;
 	}
 
-	/*---------create buffers--------------*/
-	//set the running flag
-	InterlockedExchange(&data->running, TRUE);
-
+	/*---------create buffer--------------*/
 	//calculate frame size
 	data->frameSize = FrameSizeFromDevFmt(device->FmtChans, device->FmtType);
 
-	data->numBuffers = 2;//TO DO: configurate this value
-	size_t bufferSize = device->NumUpdates * device->UpdateSize * data->frameSize / data->numBuffers;
-	data->buffers = new (std::nothrow) XAudio2Buffer[data->numBuffers];
-	if (data->buffers == NULL)
-	{
-		ERR("Failed to create buffers for XAudio2 source voice\n");
-		return ALC_FALSE;
-	}
+	//start playing the audio engine
+	data->sourceVoice->Start();
 
-	for (size_t i = 0; i < data->numBuffers; ++i)
-	{
-		auto & buffer = data->buffers[i];
-		buffer.bufferSize = bufferSize;
-		buffer.data = new (std::nothrow) BYTE[buffer.bufferSize];
-		if (buffer.data == NULL)
-		{
-			ERR("Failed to create one buffer's storage for XAudio2 source voice\n");
-			return ALC_FALSE;
-		}
-	}
+	//wait for the buffer to be created
+	WaitForSingleObjectEx(data->sourceVoiceCallback->callbackEvent, INFINITE, FALSE);
+
+	device->UpdateSize = data->bufferSize / data->frameSize;
+	device->NumUpdates = 1;
+
+
+	//set the running flag
+	InterlockedExchange(&data->running, TRUE);
 
 	return ALC_TRUE;
 }
@@ -652,12 +595,6 @@ static ALCboolean xaudio2_reset_playback(ALCdevice *device)
 
 	if (g_MsgQueue->PostMsg(TM_USER_ResetDevice, &req, device))
 		re = WaitForResponseALboolean(&req);
-
-	if (re == ALC_TRUE)
-	{
-		//start playing the audio engine
-		data->sourceVoice->Start();
-	}
 
 	return re;
 }
