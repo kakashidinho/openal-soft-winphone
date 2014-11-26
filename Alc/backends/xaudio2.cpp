@@ -141,16 +141,17 @@ public:
 		//TO DO
 	}
 private:
-	void SubmitBufferRegion(UINT numByteRequired);
+	void SubmitBufferRegion(XAudio2Buffer* buffer, UINT numByteRequired);
 
 	ALCdevice* device;
 };
 
-void XAudio2SourceVoiceCallback::SubmitBufferRegion(UINT numBytesRequired)
+void XAudio2SourceVoiceCallback::SubmitBufferRegion(XAudio2Buffer* buffer, UINT numBytesRequired)
 {
+	if (numBytesRequired == 0)
+		return;
 	HRESULT hr;
 	XAudio2Data* data = (XAudio2Data*)device->ExtraData;
-	auto buffer = data->buffers + data->currentBufferIdx;//buffer to be used
 	size_t spaceLeft = buffer->bufferSize - buffer->lastWritePosition;
 	size_t bufferRegionSize = min(numBytesRequired, spaceLeft);
 	BYTE* bufferRegionData = buffer->data + buffer->lastWritePosition;
@@ -161,6 +162,13 @@ void XAudio2SourceVoiceCallback::SubmitBufferRegion(UINT numBytesRequired)
 	aluMixData(device, bufferRegionData, samples);//mix data
 
 	buffer->lastWritePosition += bufferRegionSize;
+
+#if 0//audio glitch simulation
+	for (int i = 0; i < 10000000; ++i)
+	{
+		int a = 0;
+	}
+#endif
 
 	/*------------submit buffer region-------------*/
 	XAUDIO2_BUFFER bufferRegionToSubmit;
@@ -190,13 +198,12 @@ COM_DECLSPEC_NOTHROW void STDMETHODCALLTYPE XAudio2SourceVoiceCallback::OnBuffer
 		buffer->refCount--;
 		if (buffer->refCount == 0)//buffer is available again
 		{
+			buffer->lastWritePosition = 0;
 			if (buffer->pendingBufferRegionSize)
 			{
-				SubmitBufferRegion(buffer->pendingBufferRegionSize);
+				SubmitBufferRegion(buffer, buffer->pendingBufferRegionSize);
 				buffer->pendingBufferRegionSize = 0;
 			}
-			else
-				buffer->lastWritePosition = 0;
 		}
 	}//if (isRunning)
 }
@@ -226,13 +233,12 @@ COM_DECLSPEC_NOTHROW void STDMETHODCALLTYPE XAudio2SourceVoiceCallback::OnVoiceP
 
 		if (numBytesRequired > spaceLeft)//no buffer available
 		{
-			buffer->lastWritePosition = 0;
 			//we must wait for the buffer to be fully used by XAudio2 before submitting data again
 			buffer->pendingBufferRegionSize += numBytesRequired;
 		}
 		else
 		{
-			this->SubmitBufferRegion(numBytesRequired);
+			this->SubmitBufferRegion(buffer, numBytesRequired);
 		}//if (numBytesRequired > spaceLeft)
 	}//if (state & STATE_RUNNING)
 }
