@@ -66,7 +66,6 @@ typedef struct
 
 	HANDLE MsgEvent;
 
-	size_t currentBufferIdx;
 	LONG running;
 } XAudio2Data;
 
