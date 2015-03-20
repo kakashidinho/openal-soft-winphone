@@ -14,3 +14,4 @@ Important Notes:
  - Windows Store App: 
 	* alcOpenDevice() is not allowed to be called on UI thread. 
 	* All OpenAL function are not allowed to be called before UI window is ready/visible.
+	* The above notes are applied for WASAPI backend only for now. Currently, Xaudio2 is default backend which doesn't cause such problems.
