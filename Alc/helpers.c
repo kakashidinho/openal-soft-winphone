@@ -276,7 +276,9 @@ void al_print(const char *func, const char *fmt, ...)
 #ifdef ANDROID
     __android_log_write(ANDROID_LOG_WARN, "OpenAL", str);
 #elif defined _MSC_VER
+#	if defined DEBUG || defined _DEBUG
 	OutputDebugStringA(str);
+#	endif
 #endif
 }
 

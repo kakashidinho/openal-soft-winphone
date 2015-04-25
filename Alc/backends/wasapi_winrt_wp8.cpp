@@ -760,14 +760,14 @@ static ALCenum WASAPIDevApiOpenPlayback(ALCdevice *device, const ALCchar *device
 	if (!assertTrue)
 	{
 		const char errorMsg[] = "Fatal error: You are calling a OpenAL function before UI window is visible\n\n";
-#ifdef _MSC_VER
+#if defined DEBUG || defined _DEBUG
 		OutputDebugStringA(errorMsg);
 		__debugbreak();
 #else
-		_ASSERT_EXPR(false, L"You are calling a OpenAL function before UI window is visible");
-#endif
-		//throw std::runtime_error(errorMsg);
+		throw std::runtime_error(errorMsg);
 		//crashes the system
+		//_ASSERT_EXPR(false, L"You are calling a OpenAL function before UI window is visible");
+#endif
 		free(data);
 		device->ExtraData = NULL;
 
@@ -783,13 +783,13 @@ static ALCenum WASAPIDevApiOpenPlayback(ALCdevice *device, const ALCchar *device
 	if (!assertTrue)
 	{
 		const char errorMsg[] = "Fatal error: You are calling alcOpenDevice() on UI thread\n\n";
-#ifdef _MSC_VER
+#if defined _DEBUG || defined DEBUG
 		OutputDebugStringA(errorMsg);
 		__debugbreak();
 #else
-		_ASSERT_EXPR(false, L"You are calling alcOpenDevice() on UI thread");
+		throw std::runtime_error(errorMsg);
+		//_ASSERT_EXPR(false, L"You are calling alcOpenDevice() on UI thread");
 #endif
-		//throw std::runtime_error(errorMsg);
 		free(data);
 		device->ExtraData = NULL;
 

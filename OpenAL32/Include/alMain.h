@@ -130,12 +130,7 @@ void pthread_once(pthread_once_t *once, void (*callback)(void));
 
 #if defined _WIN_RT//Windows store/phone version
 
-#if _WIN32_WINNT < 0x0603
-#	define _HAS_MS_SLEEP_ 0//do we have Sleep() function
-#else
-#	define _HAS_MS_SLEEP_ 1
-#endif
-
+#define _HAS_MS_SLEEP_ 0
 #define _NO_GETENV
 
 #define InitializeCriticalSection(cs) InitializeCriticalSectionEx(cs, 0, 0)
