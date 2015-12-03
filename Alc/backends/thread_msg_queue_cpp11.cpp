@@ -66,8 +66,8 @@ int MsgQueue_t::GetMsg(QueueMsg_t* msgOut)
 
 
 	//retrieve the oldest message
-	*msgOut = MsgQueue.back();
-	MsgQueue.pop_back();
+	*msgOut = MsgQueue.front();
+	MsgQueue.pop_front();
 
 	if (msgOut->message == TM_QUIT)
 		return 0;
